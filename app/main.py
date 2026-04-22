@@ -35,6 +35,7 @@ from app.core.database import init_database
 from app.api.v1.router import api_router
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.core.dependencies import verify_user
+from app.client.detection.model_downloader import ensure_intel_models
 
 config = ProctoringConfig()
 
@@ -72,6 +73,22 @@ async def lifespan(app: FastAPI):
     except Exception:
         debug_logger.exception("Database initialization failed")
         raise
+
+    # Intel OpenVINO models — download on first start when selected
+    _active_client = (os.getenv("DETECTION_CLIENT") or "mediapipe").strip().lower()
+    if _active_client == "intel":
+        debug_logger.info(
+            "DETECTION_CLIENT=intel detected — ensuring Intel models are present …"
+        )
+        _models_ok = ensure_intel_models()
+        if _models_ok:
+            debug_logger.info("Intel models ready.")
+        else:
+            debug_logger.warning(
+                "One or more Intel models could not be downloaded. "
+                "The Intel detection client will return None values until "
+                "all model files are available."
+            )
 
     # Scheduler (failures logged with traceback in debug_logs via start_scheduler)
     start_scheduler()
