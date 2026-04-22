@@ -1,6 +1,5 @@
-# config.py
 """
-Configuration settings for the AI Interviewer application.
+Configuration settings for the AI Proctoring application.
 """
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -142,6 +141,68 @@ class S3Config:
 
 
 @dataclass
+class MediaPipeDetectionConfig:
+    """MediaPipe-specific face detection and gaze estimation thresholds."""
+
+    # ── Detection Confidence ──────────────────────────────────────────────
+    MIN_DETECTION_CONFIDENCE: float      = 0.70
+    MIN_TRACKING_CONFIDENCE: float       = 0.70
+    MAX_FACES: int                       = 2
+
+    # ── Gaze & Head Pose (degrees) ────────────────────────────────────────
+    GAZE_HORIZONTAL_THRESHOLD: float     = 8.0
+    GAZE_VERTICAL_THRESHOLD: float       = 8.0
+    HEAD_YAW_THRESHOLD: float            = 28.0
+    HEAD_PITCH_THRESHOLD: float          = 28.0
+    HEAD_ROLL_THRESHOLD: float           = 18.0
+
+    # ── Eye Aspect Ratio (EAR) ────────────────────────────────────────────
+    EYE_ASPECT_RATIO_THRESHOLD: float    = 0.18
+    MIN_IRIS_VISIBILITY: float           = 0.45
+    BLINK_EAR_THRESHOLD: float           = 0.14
+
+    # ── Confidence Multipliers ────────────────────────────────────────────
+    GAZE_CONFIDENCE_MULTIPLIER: float    = 1.0
+    POSE_CONFIDENCE_MULTIPLIER: float    = 1.0
+
+    # ── Frame Quality ─────────────────────────────────────────────────────
+    MIN_FACE_PRESENCE_SCORE: float       = 0.90
+    MIN_CONFIDENCE_THRESHOLD: float      = 0.45
+    EYE_MIN_CONFIDENCE_THRESHOLD: float  = 0.35
+
+
+@dataclass
+class IntelDetectionConfig:
+    """Intel OpenVINO-specific face detection and gaze estimation thresholds."""
+
+    # ── Detection Confidence ──────────────────────────────────────────────
+    MIN_DETECTION_CONFIDENCE: float      = 0.65
+    MIN_TRACKING_CONFIDENCE: float       = 0.60
+    MAX_FACES: int                       = 2
+
+    # ── Gaze & Head Pose (degrees) ────────────────────────────────────────
+    GAZE_HORIZONTAL_THRESHOLD: float     = 8.5
+    GAZE_VERTICAL_THRESHOLD: float       = 8.5
+    HEAD_YAW_THRESHOLD: float            = 28.0
+    HEAD_PITCH_THRESHOLD: float          = 28.0
+    HEAD_ROLL_THRESHOLD: float           = 18.0
+
+    # ── Eye Aspect Ratio (EAR) ────────────────────────────────────────────
+    EYE_ASPECT_RATIO_THRESHOLD: float    = 0.16
+    MIN_IRIS_VISIBILITY: float           = 0.40
+    BLINK_EAR_THRESHOLD: float           = 0.12
+
+    # ── Confidence Multipliers ────────────────────────────────────────────
+    GAZE_CONFIDENCE_MULTIPLIER: float    = 1.0
+    POSE_CONFIDENCE_MULTIPLIER: float    = 1.0
+
+    # ── Frame Quality ─────────────────────────────────────────────────────
+    MIN_FACE_PRESENCE_SCORE: float       = 0.85
+    MIN_CONFIDENCE_THRESHOLD: float      = 0.40
+    EYE_MIN_CONFIDENCE_THRESHOLD: float  = 0.30
+
+
+@dataclass
 class ProctoringConfig:
 
     # ── Video Processing ──────────────────────────────────────────────────
@@ -150,69 +211,14 @@ class ProctoringConfig:
     WARMUP_SECONDS: float      = 3.0
 
     # ── Detection Client Selection ─────────────────────────────────────────
-    # Options: "mediapipe" (default) or "intel"
     DETECTION_CLIENT: str      = os.getenv("DETECTION_CLIENT", "mediapipe").strip().lower()
 
-    # ── Detection Accuracy Tuning (Both MediaPipe & Intel) ────────────────
-    # These parameters fine-tune face detection, iris tracking, and pose
-    # estimation for accuracy across different lighting/environment conditions
-    
-    DETECTION_MIN_CONFIDENCE: float = float(
-        os.getenv("DETECTION_MIN_CONFIDENCE", "0.65") or "0.65"
-    )
-    """
-    Minimum confidence threshold for face detection (0.0 - 1.0).
-    Higher values reduce false positives but increase misses in poor lighting.
-    MediaPipe: 0.6-0.7, Intel: 0.5-0.7. Balanced default: 0.65
-    """
+    # ── Detection Config (auto-selected based on DETECTION_CLIENT) ────────
+    _detection_config: Optional[object] = None
 
-    DETECTION_MIN_TRACKING_CONFIDENCE: float = float(
-        os.getenv("DETECTION_MIN_TRACKING_CONFIDENCE", "0.65") or "0.65"
-    )
-    """
-    Minimum confidence for face tracking frame-to-frame (0.0 - 1.0).
-    Higher values stabilize tracking but slow occlusion recovery.
-    MediaPipe: 0.7, Intel: 0.5-0.6. Balanced: 0.65
-    """
-
-    GAZE_CONFIDENCE_MULTIPLIER: float = float(
-        os.getenv("GAZE_CONFIDENCE_MULTIPLIER", "1.0") or "1.0"
-    )
-    """
-    Multiplier for gaze detection confidence (Intel-specific).
-    > 1.0: boost confidence (trust gaze more), < 1.0: reduce (stricter).
-    Use for accuracy tuning when Intel gaze is over/under-confident vs MediaPipe.
-    """
-
-    POSE_CONFIDENCE_MULTIPLIER: float = float(
-        os.getenv("POSE_CONFIDENCE_MULTIPLIER", "1.0") or "1.0"
-    )
-    """
-    Multiplier for head pose confidence (Intel-specific).
-    > 1.0: boost, < 1.0: reduce. Tune if Intel head pose differs from MediaPipe.
-    """
-
-    # ── Gaze & Pose Thresholds (Calibration-Free) ─────────────────────────
-    FIXED_EYE_HORIZONTAL_THRESHOLD: float = 8.0
-    FIXED_EYE_VERTICAL_THRESHOLD: float   = 8.0
-    FIXED_HEAD_YAW_THRESHOLD: float       = 28.0
-    FIXED_HEAD_PITCH_THRESHOLD: float     = 28.0
-    FIXED_HEAD_ROLL_THRESHOLD: float      = 18.0
-
-    # ── EAR & Blink Detection ─────────────────────────────────────────────
-    EYE_ASPECT_RATIO_THRESHOLD: float = float(
-        os.getenv("EYE_ASPECT_RATIO_THRESHOLD", "0.18") or "0.18"
-    )
-    """
-    Eye aspect ratio (EAR) threshold for open/closed eye detection (0.05-0.30).
-    Lower = more sensitive to blinks, higher = stricter.
-    Both MediaPipe & Intel benefit from this tuning.
-    """
-    
-    MIN_IRIS_VISIBILITY: float        = 0.45
-    BLINK_EAR_THRESHOLD: float        = 0.14
-    MIN_BLINK_DURATION: float         = 0.05
-    MAX_BLINK_DURATION: float         = 0.35
+    # ── Shared Temporal/Violation Thresholds (model-independent) ──────────
+    BLINK_MIN_DURATION: float         = 0.05
+    BLINK_MAX_DURATION: float         = 0.35
     NORMAL_BLINK_RATE_MIN: int        = 5
     NORMAL_BLINK_RATE_MAX: int        = 30
     ABNORMAL_BLINK_WINDOW: float      = 60.0
@@ -222,13 +228,10 @@ class ProctoringConfig:
     EYE_MIN_EVENT_DURATION: float  = 0.8
     EVENT_GAP_TOLERANCE: float = 0.55
 
-    # ── Frame Rejection ───────────────────────────────────────────────────
+    # ── Frame Rejection (model-independent) ───────────────────────────────
     MAX_HEAD_ROTATION_SPEED: float  = 10.0
     MAX_BBOX_CENTER_SHIFT: float    = 0.05
     MAX_EYE_ANGLE_VARIANCE: float   = 0.35
-    MIN_FACE_PRESENCE_SCORE: float  = 0.90
-    MIN_CONFIDENCE_THRESHOLD: float = 0.45
-    EYE_MIN_CONFIDENCE_THRESHOLD: float = 0.35
 
     # ── Movement Velocity (Cheat Pattern Detection) ────────────────────────
     MIN_VELOCITY_THRESHOLD: float        = 5.0
@@ -247,36 +250,17 @@ class ProctoringConfig:
     # ── Head-turn Bridge ──────────────────────────────────────────────────
     HEAD_TURN_BRIDGE_SECONDS: float = 1.0
 
-    # ── MediaPipe Settings ────────────────────────────────────────────────
-    MEDIAPIPE_MAX_FACES: int                    = 2
-    MEDIAPIPE_MIN_DETECTION_CONFIDENCE: float   = 0.7
-    MEDIAPIPE_MIN_TRACKING_CONFIDENCE: float    = 0.7
-
-    # ── Intel OpenVINO Settings ──────────────────────────────────────────
+    # ── Intel OpenVINO Runtime Settings ───────────────────────────────────
     INTEL_DEVICE: str = (os.getenv("INTEL_DEVICE") or "CPU").strip()
-    """Device for OpenVINO: CPU (default), GPU, AUTO, etc."""
-    
     INTEL_PRECISION: str = (os.getenv("INTEL_PRECISION") or "FP32").strip()
-    """Model precision: FP32 (best accuracy), FP16 (faster), INT8 (fastest)"""
-    
-    INTEL_MODELS_DIR: str = (os.getenv("INTEL_MODELS_DIR") or "intel").strip()
-    """Directory for downloaded Intel OMZ models (relative to app/client/detection/)"""
-    
-    INTEL_AUTO_DOWNLOAD: bool = (
-        (os.getenv("INTEL_AUTO_DOWNLOAD") or "true").strip().lower() in ("1", "true", "yes")
-    )
-    """Auto-download models on server startup when DETECTION_CLIENT=intel"""
-    
-    INTEL_DOWNLOAD_TIMEOUT: int = int(os.getenv("INTEL_DOWNLOAD_TIMEOUT") or "300")
-    """Timeout (seconds) for model downloads"""
-    
+    INTEL_MODELS_DIR: str = "intel"
+    INTEL_AUTO_DOWNLOAD: bool = True
+    INTEL_DOWNLOAD_TIMEOUT: int = 300
     INTEL_MODEL_REPOSITORY_URL: str = (
-        os.getenv("INTEL_MODEL_REPOSITORY_URL")
-        or "https://raw.githubusercontent.com/openvinotoolkit/open_model_zoo/2024.5.0/models_intel"
-    ).strip()
-    """Fallback repository for manual model downloads"""
+        "https://raw.githubusercontent.com/openvinotoolkit/open_model_zoo/2024.5.0/models_intel"
+    )
 
-    # Face mesh landmarks (468 model) & 6-point head-pose 3D model (mm) ─
+    # ── Landmark Indices & 3D Model Points (fixed for MediaPipe 468) ──────
     FACE_MESH_LEFT_EYE_INDICES: Tuple[int, ...] = (
         33, 133, 160, 159, 158, 144, 145, 153,
     )
@@ -313,18 +297,10 @@ class ProctoringConfig:
     MAX_VIDEO_SIZE_MB: int         = 500
     ALLOWED_VIDEO_FORMATS: list    = None
 
-
-    def __post_init__(self):
-        if self.ALLOWED_VIDEO_FORMATS is None:
-            self.ALLOWED_VIDEO_FORMATS = ['.mp4', '.avi', '.mov', '.webm', '.mkv']
-
     # ── Context-aware Proctoring ──────────────────────────────────────────
     SAFE_DOWN_MAX_VELOCITY_DEG_PER_S: float = 4.0
-
     SAFE_DOWN_MAX_DURATION_SEC: float       = 2.5
     SAFE_DOWN_MAX_PITCH_DEG: float          = 14.0
-
-    # ── High-risk Filter: lower bar for head up/down ──────────────────────
     MIN_HEAD_INTENSITY_HIGH_RISK_PITCH: float = 22.0
 
     # ── TVT (Temporal Vision Transformer) ─────────────────────────────────
@@ -338,30 +314,23 @@ class ProctoringConfig:
     ENABLE_PARALLEL_PROCESSING: bool = False
 
     # ── Burst Detection ───────────────────────────────────────────────────
-
     BURST_WINDOW_SEC: float  = 20.0
     BURST_MIN_EVENTS: int    = 4
 
-    # ── Cheating Likeliness Scoring Weights (v2.4) ────────────────────────
-
+    # ── Cheating Likeliness Scoring Weights ───────────────────────────────
     WEIGHT_HRD: float = 0.30
     WEIGHT_ERD: float = 0.40
     WEIGHT_RTR: float = 0.20
     WEIGHT_BF:  float = 0.10
-
-    # CHANGE 5: multiplier raised 1.8 → 2.0.
-
     HIGH_RISK_EVENT_MULTIPLIER: float = 2.0
 
-    # Legacy callers — two-stage piecewise linear now used in ScoringService
+    # ── Legacy Scoring ────────────────────────────────────────────────────
     SCORE_LINEAR_SCALE: float  = 3.6
     SCORE_LINEAR_OFFSET: float = 1.0
+    FACE_RATIO_PENALTY_THRESHOLD: float    = 0.04
+    FACE_RATIO_PENALTY_MULTIPLIER: float   = 20.0
 
-    # ── Face Penalty (ratio-based) ────────────────────────────────────────
-    FACE_RATIO_PENALTY_THRESHOLD: float    = 0.04   # updated: was 0.06; matches new smooth curve anchor
-    FACE_RATIO_PENALTY_MULTIPLIER: float   = 20.0   # legacy caller compat
-
-    # ── Legacy PDF Scoring ────────────────────────────────────────────────
+    # ── Risk Levels ───────────────────────────────────────────────────────
     RISK_LOW_MAX: int        = 30
     RISK_MODERATE_MAX: int   = 60
     RISK_SUSPICIOUS_MAX: int = 80
@@ -384,23 +353,118 @@ class ProctoringConfig:
     INTENSITY_WEIGHT_MODERATE: float   = 0.7
     INTENSITY_WEIGHT_EXTREME: float    = 1.4
 
-    # ── Threshold Accessors ───────────────────────────────────────────────
+    def __post_init__(self):
+        if self.ALLOWED_VIDEO_FORMATS is None:
+            self.ALLOWED_VIDEO_FORMATS = ['.mp4', '.avi', '.mov', '.webm', '.mkv']
+        
+        # Auto-select detection config based on DETECTION_CLIENT
+        self._init_detection_config()
+
+    def _init_detection_config(self) -> None:
+        """Initialize the appropriate detection config based on DETECTION_CLIENT."""
+        if self.DETECTION_CLIENT == "intel":
+            self._detection_config = IntelDetectionConfig()
+        else:
+            self._detection_config = MediaPipeDetectionConfig()
+
+    def get_detection_config(self) -> object:
+        """Get the active detection config (MediaPipe or Intel)."""
+        if self._detection_config is None:
+            self._init_detection_config()
+        return self._detection_config
+
+    # ── Detection Config Accessors (proxy to active config) ────────────────
+
+    @property
+    def MIN_DETECTION_CONFIDENCE(self) -> float:
+        """Minimum confidence for face detection (model-specific)."""
+        return self.get_detection_config().MIN_DETECTION_CONFIDENCE
+
+    @property
+    def MIN_TRACKING_CONFIDENCE(self) -> float:
+        """Minimum confidence for face tracking (model-specific)."""
+        return self.get_detection_config().MIN_TRACKING_CONFIDENCE
+
+    @property
+    def GAZE_HORIZONTAL_THRESHOLD(self) -> float:
+        """Horizontal gaze angle threshold (model-specific)."""
+        return self.get_detection_config().GAZE_HORIZONTAL_THRESHOLD
+
+    @property
+    def GAZE_VERTICAL_THRESHOLD(self) -> float:
+        """Vertical gaze angle threshold (model-specific)."""
+        return self.get_detection_config().GAZE_VERTICAL_THRESHOLD
+
+    @property
+    def HEAD_YAW_THRESHOLD(self) -> float:
+        """Head yaw rotation threshold (model-specific)."""
+        return self.get_detection_config().HEAD_YAW_THRESHOLD
+
+    @property
+    def HEAD_PITCH_THRESHOLD(self) -> float:
+        """Head pitch rotation threshold (model-specific)."""
+        return self.get_detection_config().HEAD_PITCH_THRESHOLD
+
+    @property
+    def HEAD_ROLL_THRESHOLD(self) -> float:
+        """Head roll rotation threshold (model-specific)."""
+        return self.get_detection_config().HEAD_ROLL_THRESHOLD
+
+    @property
+    def EYE_ASPECT_RATIO_THRESHOLD(self) -> float:
+        """Eye aspect ratio threshold for blink detection (model-specific)."""
+        return self.get_detection_config().EYE_ASPECT_RATIO_THRESHOLD
+
+    @property
+    def MIN_IRIS_VISIBILITY(self) -> float:
+        """Minimum iris visibility ratio (model-specific)."""
+        return self.get_detection_config().MIN_IRIS_VISIBILITY
+
+    @property
+    def BLINK_EAR_THRESHOLD(self) -> float:
+        """Eye aspect ratio threshold for blink (model-specific)."""
+        return self.get_detection_config().BLINK_EAR_THRESHOLD
+
+    @property
+    def GAZE_CONFIDENCE_MULTIPLIER(self) -> float:
+        """Multiplier for gaze confidence (model-specific)."""
+        return self.get_detection_config().GAZE_CONFIDENCE_MULTIPLIER
+
+    @property
+    def POSE_CONFIDENCE_MULTIPLIER(self) -> float:
+        """Multiplier for head pose confidence (model-specific)."""
+        return self.get_detection_config().POSE_CONFIDENCE_MULTIPLIER
+
+    @property
+    def MIN_FACE_PRESENCE_SCORE(self) -> float:
+        """Minimum face presence score (model-specific)."""
+        return self.get_detection_config().MIN_FACE_PRESENCE_SCORE
+
+    @property
+    def MIN_CONFIDENCE_THRESHOLD(self) -> float:
+        """Minimum confidence threshold for face (model-specific)."""
+        return self.get_detection_config().MIN_CONFIDENCE_THRESHOLD
+
+    @property
+    def EYE_MIN_CONFIDENCE_THRESHOLD(self) -> float:
+        """Minimum confidence threshold for eyes (model-specific)."""
+        return self.get_detection_config().EYE_MIN_CONFIDENCE_THRESHOLD
 
     def get_default_thresholds(self) -> Dict[str, float]:
-        """Return fixed industry-standard thresholds (no calibration)."""
+        """Return thresholds for the active detection client."""
+        cfg = self.get_detection_config()
         return {
-            'eye_horizontal':     self.FIXED_EYE_HORIZONTAL_THRESHOLD,
-            'eye_vertical':       self.FIXED_EYE_VERTICAL_THRESHOLD,
-            'yaw':                self.FIXED_HEAD_YAW_THRESHOLD,
-            'pitch':              self.FIXED_HEAD_PITCH_THRESHOLD,
-            'roll':               self.FIXED_HEAD_ROLL_THRESHOLD,
+            'eye_horizontal':     cfg.GAZE_HORIZONTAL_THRESHOLD,
+            'eye_vertical':       cfg.GAZE_VERTICAL_THRESHOLD,
+            'yaw':                cfg.HEAD_YAW_THRESHOLD,
+            'pitch':              cfg.HEAD_PITCH_THRESHOLD,
+            'roll':               cfg.HEAD_ROLL_THRESHOLD,
             'min_event_duration': self.MIN_EVENT_DURATION,
         }
 
 
 class SchedulerConfig:
     """APScheduler settings for the proctoring background job."""
-     # Failed proctoring attempts before eligibility ends (scheduler scans + status repo).
     MAX_RETRIES: int = 3
 
     @property
