@@ -70,14 +70,14 @@ class MediaPipeDetectionClient(BaseDetectionClient):
         self.gaze_face_mesh = _fm.FaceMesh(
             max_num_faces=2,
             refine_landmarks=True,          # iris landmarks required for gaze
-            min_detection_confidence=0.60,
-            min_tracking_confidence=0.60,
+            min_detection_confidence=c.MIN_DETECTION_CONFIDENCE,
+            min_tracking_confidence=c.MIN_TRACKING_CONFIDENCE,
         )
         self.pose_face_mesh = _fm.FaceMesh(
             max_num_faces=2,
             refine_landmarks=False,
-            min_detection_confidence=0.60,
-            min_tracking_confidence=0.60,
+            min_detection_confidence=c.MIN_DETECTION_CONFIDENCE,
+            min_tracking_confidence=c.MIN_TRACKING_CONFIDENCE,
         )
 
         # ── Kalman filters ────────────────────────────────────────────

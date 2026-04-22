@@ -56,6 +56,7 @@ from app.utils.logger import debug_logger
 # ---------------------------------------------------------------------------
 
 # Root of the ``intel/`` tree (next to this source file by default).
+# This resolves to: app/client/detection/face_tracking/intel/
 _DEFAULT_MODELS_ROOT: Path = Path(__file__).parent
 
 # OMZ base URL for direct HTTPS fallback (commit-pinned to a stable release).
