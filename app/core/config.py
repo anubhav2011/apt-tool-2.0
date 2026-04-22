@@ -149,6 +149,49 @@ class ProctoringConfig:
     TARGET_FPS: int            = 18
     WARMUP_SECONDS: float      = 3.0
 
+    # ── Detection Client Selection ─────────────────────────────────────────
+    # Options: "mediapipe" (default) or "intel"
+    DETECTION_CLIENT: str      = os.getenv("DETECTION_CLIENT", "mediapipe").strip().lower()
+
+    # ── Detection Accuracy Tuning (Both MediaPipe & Intel) ────────────────
+    # These parameters fine-tune face detection, iris tracking, and pose
+    # estimation for accuracy across different lighting/environment conditions
+    
+    DETECTION_MIN_CONFIDENCE: float = float(
+        os.getenv("DETECTION_MIN_CONFIDENCE", "0.65") or "0.65"
+    )
+    """
+    Minimum confidence threshold for face detection (0.0 - 1.0).
+    Higher values reduce false positives but increase misses in poor lighting.
+    MediaPipe: 0.6-0.7, Intel: 0.5-0.7. Balanced default: 0.65
+    """
+
+    DETECTION_MIN_TRACKING_CONFIDENCE: float = float(
+        os.getenv("DETECTION_MIN_TRACKING_CONFIDENCE", "0.65") or "0.65"
+    )
+    """
+    Minimum confidence for face tracking frame-to-frame (0.0 - 1.0).
+    Higher values stabilize tracking but slow occlusion recovery.
+    MediaPipe: 0.7, Intel: 0.5-0.6. Balanced: 0.65
+    """
+
+    GAZE_CONFIDENCE_MULTIPLIER: float = float(
+        os.getenv("GAZE_CONFIDENCE_MULTIPLIER", "1.0") or "1.0"
+    )
+    """
+    Multiplier for gaze detection confidence (Intel-specific).
+    > 1.0: boost confidence (trust gaze more), < 1.0: reduce (stricter).
+    Use for accuracy tuning when Intel gaze is over/under-confident vs MediaPipe.
+    """
+
+    POSE_CONFIDENCE_MULTIPLIER: float = float(
+        os.getenv("POSE_CONFIDENCE_MULTIPLIER", "1.0") or "1.0"
+    )
+    """
+    Multiplier for head pose confidence (Intel-specific).
+    > 1.0: boost, < 1.0: reduce. Tune if Intel head pose differs from MediaPipe.
+    """
+
     # ── Gaze & Pose Thresholds (Calibration-Free) ─────────────────────────
     FIXED_EYE_HORIZONTAL_THRESHOLD: float = 8.0
     FIXED_EYE_VERTICAL_THRESHOLD: float   = 8.0
@@ -157,7 +200,15 @@ class ProctoringConfig:
     FIXED_HEAD_ROLL_THRESHOLD: float      = 18.0
 
     # ── EAR & Blink Detection ─────────────────────────────────────────────
-    EYE_ASPECT_RATIO_THRESHOLD: float = 0.18
+    EYE_ASPECT_RATIO_THRESHOLD: float = float(
+        os.getenv("EYE_ASPECT_RATIO_THRESHOLD", "0.18") or "0.18"
+    )
+    """
+    Eye aspect ratio (EAR) threshold for open/closed eye detection (0.05-0.30).
+    Lower = more sensitive to blinks, higher = stricter.
+    Both MediaPipe & Intel benefit from this tuning.
+    """
+    
     MIN_IRIS_VISIBILITY: float        = 0.45
     BLINK_EAR_THRESHOLD: float        = 0.14
     MIN_BLINK_DURATION: float         = 0.05
@@ -201,7 +252,31 @@ class ProctoringConfig:
     MEDIAPIPE_MIN_DETECTION_CONFIDENCE: float   = 0.7
     MEDIAPIPE_MIN_TRACKING_CONFIDENCE: float    = 0.7
 
-    # ── Face mesh landmarks (468 model) & 6-point head-pose 3D model (mm) ─
+    # ── Intel OpenVINO Settings ──────────────────────────────────────────
+    INTEL_DEVICE: str = (os.getenv("INTEL_DEVICE") or "CPU").strip()
+    """Device for OpenVINO: CPU (default), GPU, AUTO, etc."""
+    
+    INTEL_PRECISION: str = (os.getenv("INTEL_PRECISION") or "FP32").strip()
+    """Model precision: FP32 (best accuracy), FP16 (faster), INT8 (fastest)"""
+    
+    INTEL_MODELS_DIR: str = (os.getenv("INTEL_MODELS_DIR") or "intel").strip()
+    """Directory for downloaded Intel OMZ models (relative to app/client/detection/)"""
+    
+    INTEL_AUTO_DOWNLOAD: bool = (
+        (os.getenv("INTEL_AUTO_DOWNLOAD") or "true").strip().lower() in ("1", "true", "yes")
+    )
+    """Auto-download models on server startup when DETECTION_CLIENT=intel"""
+    
+    INTEL_DOWNLOAD_TIMEOUT: int = int(os.getenv("INTEL_DOWNLOAD_TIMEOUT") or "300")
+    """Timeout (seconds) for model downloads"""
+    
+    INTEL_MODEL_REPOSITORY_URL: str = (
+        os.getenv("INTEL_MODEL_REPOSITORY_URL")
+        or "https://raw.githubusercontent.com/openvinotoolkit/open_model_zoo/2024.5.0/models_intel"
+    ).strip()
+    """Fallback repository for manual model downloads"""
+
+    # Face mesh landmarks (468 model) & 6-point head-pose 3D model (mm) ─
     FACE_MESH_LEFT_EYE_INDICES: Tuple[int, ...] = (
         33, 133, 160, 159, 158, 144, 145, 153,
     )

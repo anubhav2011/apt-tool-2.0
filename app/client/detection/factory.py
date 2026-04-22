@@ -41,7 +41,7 @@ from __future__ import annotations
 import os
 from typing import Dict, Type
 
-from app.client.detection.base import BaseDetectionClient
+from app.client.detection.face_tracking.base import BaseDetectionClient
 from app.utils.logger import debug_logger
 
 
@@ -51,12 +51,14 @@ from app.utils.logger import debug_logger
 # ---------------------------------------------------------------------------
 
 def _load_mediapipe_class() -> Type[BaseDetectionClient]:
-    from app.client.detection.mediapipe_client import MediaPipeDetectionClient
+    from app.client.detection.face_tracking.mediapipe_client import (
+        MediaPipeDetectionClient,
+    )
     return MediaPipeDetectionClient
 
 
 def _load_intel_class() -> Type[BaseDetectionClient]:
-    from app.client.detection.intel_client import IntelDetectionClient
+    from app.client.detection.face_tracking.intel_client import IntelDetectionClient
     return IntelDetectionClient
 
 

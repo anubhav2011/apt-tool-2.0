@@ -36,7 +36,7 @@ from typing import Dict, List, Optional, Tuple
 
 from numpy.typing import NDArray
 
-from app.client.detection.base import BaseDetectionClient
+from app.client.detection.face_tracking.base import BaseDetectionClient
 
 # Letterbox metadata: (orig_w, orig_h, square_side, offset_x, offset_y)
 SquarePackMeta = Tuple[int, int, int, int, int]

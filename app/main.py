@@ -35,7 +35,7 @@ from app.core.database import init_database
 from app.api.v1.router import api_router
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.core.dependencies import verify_user
-from app.client.detection.model_downloader import ensure_intel_models
+from app.client.detection.face_tracking.model_downloader import ensure_intel_models
 
 config = ProctoringConfig()
 

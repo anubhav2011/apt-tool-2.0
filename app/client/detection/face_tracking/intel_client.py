@@ -48,8 +48,8 @@ import cv2
 import numpy as np
 from numpy.typing import NDArray
 
-from app.client.detection.base import BaseDetectionClient
-from app.client.detection.model_downloader import get_model_paths
+from app.client.detection.face_tracking.base import BaseDetectionClient
+from app.client.detection.face_tracking.model_downloader import get_model_paths
 from app.utils.logger import debug_logger
 
 
